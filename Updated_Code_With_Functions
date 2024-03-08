@@ -1,0 +1,212 @@
+library(tidyquant)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(stringr)
+library(purrr)
+
+stocks_year <- function(stocks, beg_period, end_period, wts) {
+  wts3 <- rep(1/3, 3)
+  wts4 <- rep(0.25, 4)
+  wts5 <- rep(0.2, 5)
+  
+  if (all(wts == 3)) {
+    df <- stocks %>% 
+      tq_get(get = "stock.prices", from = beg_period, to = end_period) %>% 
+      group_by(symbol) %>% 
+      tq_transmute(select = adjusted,
+                   mutate_fun = periodReturn,
+                   period = "yearly",
+                   col_rename = "Return") %>%
+      tq_portfolio(assets_col = symbol,
+                   returns_col = Return,
+                   weights = wts3,
+                   col_rename = "Return")
+    
+    new_row <- data.frame(Return = 0, date = ymd(beg_period) - years(1))
+    
+    # Add the row using rbind()
+    df <- rbind(new_row, df)
+  } else if (all(wts == 4)) {
+    df <- stocks %>% 
+      tq_get(get = "stock.prices", from = beg_period, to = end_period) %>% 
+      group_by(symbol) %>% 
+      tq_transmute(select = adjusted,
+                   mutate_fun = periodReturn,
+                   period = "yearly",
+                   col_rename = "Return") %>%
+      tq_portfolio(assets_col = symbol,
+                   returns_col = Return,
+                   weights = wts4,
+                   col_rename = "Return")
+    
+    new_row <- data.frame(Return = 0, date = ymd(beg_period) - years(1))
+    
+    # Add the row using rbind()
+    df <- rbind(new_row, df)
+  } else if (all(wts == 5)) {
+    df <- stocks %>% 
+      tq_get(get = "stock.prices", from = beg_period, to = end_period) %>% 
+      group_by(symbol) %>% 
+      tq_transmute(select = adjusted,
+                   mutate_fun = periodReturn,
+                   period = "yearly",
+                   col_rename = "Return") %>%
+      tq_portfolio(assets_col = symbol,
+                   returns_col = Return,
+                   weights = wts5,
+                   col_rename = "Return")
+    
+    new_row <- data.frame(Return = 0, date = ymd(beg_period) - years(1))
+    
+    # Add the row using rbind()
+    df <- rbind(new_row, df)
+  }
+  
+  return(df)
+}
+
+# Define the df_SP500 function
+df_SP500 <- function(beg_period, end_period) {
+  df <- tq_get(x = "SPY",
+               get = "stock.prices",
+               from = beg_period,
+               to = end_period) %>%
+    tq_transmute(select = adjusted,
+                 mutate_fun = periodReturn,
+                 period = "yearly",
+                 col_rename = "Return")
+  
+  new_row <- data.frame(Return = 0, date = ymd(beg_period) - years(1))
+  
+  # Add the row using rbind()
+  df <- rbind(new_row, df)
+  
+  return(df)
+}
+
+# Define the df_year function
+df_year <- function(df, year) {
+  df_new <- df %>% rename("SP500_Return" = "Return") %>% 
+    mutate(portfolio = df$Return,
+           date = ymd(date),
+           year_inception = paste0(year)) %>% 
+    group_by(year_inception) %>% 
+    mutate(SP500_Cum = cumprod(1 + SP500_Return),
+           RAND_Cum = cumprod(1 + portfolio))
+  
+  return(df_new)
+}
+
+df_total_growth <- df_total_returns %>% 
+  group_by(year_inception) %>% 
+  mutate(SP500_Cum = cumprod(1 + SP500_Return),
+         RAND_Cum = cumprod(1 + portfolio))
+
+df_total_growth <- df_total_growth %>% 
+  ungroup() %>% 
+  mutate(years_since_inception = year(df_total_growth$date) - as.numeric(df_total_growth$year_inception))
+
+
+# Call the stocks_year function after definition
+
+stocks_2009_v <- c("XL", "THC", "AMD", "F", "GNW")
+stocks_2009_df <- stocks_year(stocks_2009_v, "2010-01-01", "2014-12-31", 4)
+
+# Call the df_SP500 function after definition
+df_SP500_2009 <- df_SP500("2010-01-01", "2014-12-31")
+
+# Call the df_year function after definition
+df_2009 <- df_year(df_SP500_2009, "2009")
+## 2010 Portfolio
+stocks_2010_v <- c("CMI", "AKAM", "CRM", "BKNG", "CTBB")
+stocks_2010_df <- stocks_year(stocks_2010_v, "2011-01-01", "2015-12-31", 3)
+
+# Call the df_SP500 function after definition
+df_SP500_2010 <- df_SP500("2011-01-01", "2015-12-31")
+
+# Call the df_year function after definition
+df_2010 <- df_year(df_SP500_2010, "2010")
+
+# 2011 Portfolio
+stocks_2011_v <- c("CTRA", "EP-C", "MA", "HUM", "OKE")
+stocks_2011_df <- stocks_year(stocks_2011_v, "2012-01-01", "2016-12-31", 4)
+
+# Call the df_SP500 function after definition
+df_SP500_2011 <- df_SP500("2012-01-01", "2016-12-31")
+
+# Call the df_year function after definition
+df_2011 <- df_year(df_SP500_2011, "2011")
+
+# 2012 Portfolio
+stocks_2012_v <- c("SHLD", "BAC", "NFLX", "WHR", "FII")
+stocks_2012_df <- stocks_year(stocks_2012_v, "2013-01-01", "2017-12-31", 3)
+
+# Call the df_SP500 function after definition
+df_SP500_2012 <- df_SP500("2013-01-01", "2017-12-31")
+
+# Call the df_year function after definition
+df_2012 <- df_year(df_SP500_2012, "2012")
+
+# 2013 Portfolio
+stocks_2013_v <- c("NFLX", "BBY", "MU", "DAL", "PBI")
+stocks_2013_df <- stocks_year(stocks_2013_v, "2014-01-01", "2018-12-31", 5)
+
+# Call the df_SP500 function after definition
+df_SP500_2013 <- df_SP500("2014-01-01", "2018-12-31")
+
+# Call the df_year function after definition
+df_2013 <- df_year(df_SP500_2013, "2013")
+
+# 2014 Portfolio
+stocks_2014_v <- c("LUV", "EA", "EW", "AVGO", "AGN")
+stocks_2014_df <- stocks_year(stocks_2014_v, "2015-01-01", "2019-12-31", 4)
+
+# Call the df_SP500 function after definition
+df_SP500_2014 <- df_SP500("2015-01-01", "2019-12-31")
+
+# Call the df_year function after definition
+df_2014 <- df_year(df_SP500_2014, "2014")
+
+# 2015 Portfolio
+stocks_2015_v <- c("NFLX", "AMZN", "ATVI", "NVDA", "HRL")
+stocks_2015_df <- stocks_year(stocks_2015_v, "2016-01-01", "2020-12-31", 4)
+
+# Call the df_SP500 function after definition
+df_SP500_2015 <- df_SP500("2016-01-01", "2020-12-31")
+
+# Call the df_year function after definition
+df_2015 <- df_year(df_SP500_2015, "2015")
+
+# 2016 Portfolio
+stocks_2016_v <- c("NVDA", "OKE", "FCX", "NEM", "SEP")
+stocks_2016_df <- stocks_year(stocks_2016_v, "2017-01-01", "2021-12-31", 5)
+
+# Call the df_SP500 function after definition
+df_SP500_2016 <- df_SP500("2017-01-01", "2021-12-31")
+
+# Call the df_year function after definition
+df_2016 <- df_year(df_SP500_2016, "2016")
+
+# 2017 Portfolio
+stocks_2017_v <- c("ALGN", "NRG", "FSLR", "VRTX", "MU")
+stocks_2017_df <- stocks_year(stocks_2017_v, "2018-01-01", "2022-12-31", 5)
+
+# Call the df_SP500 function after definition
+df_SP500_2017 <- df_SP500("2018-01-01", "2022-12-31")
+
+# Call the df_year function after definition
+df_2017<- df_year(df_SP500_2017, "2017")
+
+# 2018 Portfolio
+stocks_2018_v <- c("AMD", "ABMD", "FTNT", "TRIP", "RHT")
+stocks_2018_df <- stocks_year(stocks_2018_v, "2019-01-01", "2023-12-31", 4)
+
+# Call the df_SP500 function after definition
+df_SP500_2018 <- df_SP500("2019-01-01", "2023-12-31")
+
+# Call the df_year function after definition
+df_2018 <- df_year(df_SP500_2018, "2018")
+
+df_total_returns <- rbind(df_2009, df_2010, df_2011, df_2012, df_2013, df_2014, df_2015, df_2016, df_2017, df_2018)
+
